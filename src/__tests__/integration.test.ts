@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { unlinkSync, existsSync } from 'fs';
-import { tmpdir } from 'os';
+import { tmpdir, homedir } from 'os';
 import { join } from 'path';
 
 // Mock the plugin module dependencies
@@ -30,7 +30,7 @@ describe('Plugin Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDatabase.getPath.mockReturnValue(testDbPath);
+    mockDatabase.getPath.mockReturnValue(join(homedir(), '.local', 'share', 'opencode', 'checkpoints.db'));
   });
 
   afterEach(() => {

@@ -117,7 +117,7 @@ export class CheckpointDatabase {
       WHERE id = ?
     `);
 
-    return stmt.get(id) as Checkpoint | null;
+    return (stmt.get(id) as Checkpoint) ?? null;
   }
 
   /**
@@ -136,7 +136,7 @@ export class CheckpointDatabase {
         metadata
       FROM checkpoints
       WHERE session_id = ?
-      ORDER BY created_at DESC
+      ORDER BY created_at DESC, id DESC
       LIMIT ?
     `);
 
@@ -159,11 +159,11 @@ export class CheckpointDatabase {
         metadata
       FROM checkpoints
       WHERE session_id = ? AND name = ?
-      ORDER BY created_at DESC
+      ORDER BY created_at DESC, id DESC
       LIMIT 1
     `);
 
-    return stmt.get(sessionId, name) as Checkpoint | null;
+    return (stmt.get(sessionId, name) as Checkpoint) ?? null;
   }
 
   /**

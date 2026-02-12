@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { RestoreManager, type OpenCodeSessionClient } from '../src/restore';
-import { CheckpointDatabase } from '../src/database';
+import { RestoreManager, type OpenCodeSessionClient } from '../restore';
+import { CheckpointDatabase } from '../database';
 import { unlinkSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
