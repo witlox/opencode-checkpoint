@@ -65,19 +65,13 @@ Or for local plugin:
 
 ## 🚀 Usage
 
+This plugin registers tools that the AI agent can call during a session. Ask the agent to create checkpoints, list them, restore, etc.
+
 ### Creating Checkpoints
 
-```bash
-# Simple checkpoint
-/checkpoint Working State
+> "Create a checkpoint called Working State"
 
-# With description
-/checkpoint Before Refactor Major database schema changes
-
-# Automatically captures Git commit if in git repo
-```
-
-**What gets saved:**
+The `checkpoint_create` tool saves:
 - Session ID
 - Checkpoint name
 - Description (optional)
@@ -88,13 +82,11 @@ Or for local plugin:
 
 ### Listing Checkpoints
 
-```bash
-/checkpoint-list
-```
+> "List my checkpoints"
 
-**Output:**
+The `checkpoint_list` tool outputs a table:
 ```
-## Checkpoints (3)
+Checkpoints (3):
 
 | ID | Name | Messages | Created | Git |
 |---|---|---|---|---|
@@ -105,52 +97,21 @@ Or for local plugin:
 
 ### Restoring to Checkpoints
 
-```bash
-# Restore by ID
-/restore 2
+> "Restore to checkpoint 2" or "Restore to checkpoint Before Refactor"
 
-# Restore by name (uses most recent if multiple with same name)
-/restore "Before Refactor"
-```
-
-**What happens:**
-1. Plugin validates checkpoint exists and is restorable
+The `checkpoint_restore` tool:
+1. Validates checkpoint exists and is restorable
 2. Creates new forked session up to checkpoint message count
 3. Original session remains unchanged
 4. New session opens with state at checkpoint
 
-**Output:**
-```
-✓ Session restored to checkpoint: Before Refactor
-
-A new session has been created with 30 messages.
-New session ID: ses_abc123xyz
-
-Switch to the new session to continue from the checkpoint.
-The current session remains unchanged.
-```
-
 ### Deleting Checkpoints
 
-```bash
-# Delete by ID
-/checkpoint-delete 2
-```
+> "Delete checkpoint 2"
 
 ### Statistics
 
-```bash
-/checkpoint-stats
-```
-
-**Output:**
-```
-## Checkpoint Statistics
-
-- Total checkpoints: 42
-- Total sessions: 7
-- Database: /home/user/.local/share/opencode/checkpoints.db
-```
+> "Show checkpoint stats"
 
 ## 🏗️ Architecture
 
@@ -220,26 +181,25 @@ npm run test:watch       # Watch mode
 ### Test Coverage
 
 ```
-✓ Database tests (25 tests)
+✓ Database tests (22 tests)
   ✓ Checkpoint CRUD operations
   ✓ Query performance
   ✓ Concurrent access
   ✓ Edge cases
 
-✓ Restore tests (18 tests)
+✓ Restore tests (19 tests)
   ✓ Restore validation
   ✓ Fork operations
   ✓ Error handling
   ✓ Edge cases
 
-✓ Integration tests (15 tests)
+✓ Integration tests (21 tests)
   ✓ Complete workflows
-  ✓ Command execution
+  ✓ Tool execution
   ✓ Event handling
   ✓ Error scenarios
 
-Total: 58 tests passing
-Coverage: 100%
+Total: 62 tests passing
 ```
 
 ## 🔧 Development
@@ -248,7 +208,6 @@ Coverage: 100%
 
 ```bash
 npm run build        # Compile TypeScript
-npm run dev          # Watch mode
 ```
 
 ### Project Structure
@@ -283,54 +242,49 @@ Contributions welcome! Please:
 
 ### Example: Safe Refactoring Workflow
 
-```bash
-# 1. Checkpoint current state
-/checkpoint Before Refactor Moving UserService to separate module
+```
+User: "Create a checkpoint called Before Refactor with description Moving UserService to separate module"
+  → agent calls checkpoint_create tool
 
-# 2. Do refactoring work...
-# (20 messages later)
+# Do refactoring work... (20 messages later)
+# Tests fail, need to go back
 
-# 3. Tests fail, need to go back
-/checkpoint-list
-# See checkpoint ID: 5
+User: "List my checkpoints"
+  → agent calls checkpoint_list tool (shows checkpoint ID 5)
 
-# 4. Restore
-/restore 5
-
-# 5. New session opens at checkpoint state
-# Try different approach in restored session
+User: "Restore to checkpoint 5"
+  → agent calls checkpoint_restore tool
+  → new forked session created at checkpoint state
 ```
 
 ### Example: Experiment Branches
 
-```bash
-# Checkpoint at decision point
-/checkpoint Decision Point Should we use GraphQL or REST?
+```
+User: "Checkpoint this as Decision Point - Should we use GraphQL or REST?"
+  → agent calls checkpoint_create tool
 
-# Try Approach A
-# (implement GraphQL)
-# (doesn't work well)
+# Try Approach A (implement GraphQL, doesn't work well)
 
-# Restore and try Approach B
-/restore "Decision Point"
+User: "Restore to Decision Point"
+  → agent calls checkpoint_restore tool with name "Decision Point"
 
-# (implement REST)
-# (works better!)
+# Try Approach B (implement REST, works better!)
 ```
 
 ### Example: Git Coordination
 
-```bash
+```
 # Coordinate with Git
 git add -A && git commit -m "Working state"
-/checkpoint Working State
 
-# Do risky changes
-# ...
+User: "Create a checkpoint called Working State"
+  → agent calls checkpoint_create (automatically records git commit hash)
 
-# If needed, restore both session AND Git
-/restore "Working State"
-git reset --hard <commit-hash>  # From checkpoint list
+# Do risky changes...
+
+User: "Restore to Working State"
+  → agent calls checkpoint_restore tool
+  → checkpoint list shows the git commit hash for manual git reset if needed
 ```
 
 ## ⚠️ Limitations
@@ -353,21 +307,11 @@ lsof ~/.local/share/opencode/checkpoints.db
 
 ### Checkpoint Not Found
 
-```bash
-# Verify checkpoint exists
-/checkpoint-list
-
-# Check session ID matches
-# Checkpoints are session-specific
-```
+Ask the agent to list checkpoints to verify the checkpoint exists. Checkpoints are session-specific.
 
 ### Restore Fails
 
-```bash
-# Verify current session has enough messages
-/checkpoint-list  # See message count
-# Current session must have >= checkpoint message count
-```
+The current session must have at least as many messages as the checkpoint's message count. Ask the agent to list checkpoints to see message counts.
 
 ## 📚 API Reference
 

@@ -54,25 +54,28 @@ Checkpoint at message 20
 
 **Hooks Used:**
 - `event` - Listen for session.deleted to cleanup checkpoints
-- `command` - Register checkpoint commands
+- `tool` - Register checkpoint tools (callable by the AI agent)
 
-**Commands Registered:**
-- `/checkpoint <name> [desc]` - Create checkpoint
-- `/checkpoint-list` - List checkpoints
-- `/restore <id|name>` - Restore to checkpoint
-- `/checkpoint-delete <id>` - Delete checkpoint
-- `/checkpoint-stats` - Show statistics
+**Tools Registered:**
+- `checkpoint_create` - Create checkpoint (args: name, description)
+- `checkpoint_list` - List checkpoints for current session
+- `checkpoint_restore` - Restore to checkpoint (args: checkpoint ID or name)
+- `checkpoint_delete` - Delete checkpoint (args: ID)
+- `checkpoint_stats` - Show statistics
+
+**SDK Client Adapter:**
+The plugin wraps `client.session` (which uses the OpenCode SDK's `Options`-based API) into a simpler `OpenCodeSessionClient` interface that the `RestoreManager` consumes. This keeps the restore logic decoupled from SDK specifics and easy to test with mocks.
 
 ## Data Flow
 
 ### Creating a Checkpoint
 
 ```
-User: /checkpoint "Working State"
+Agent calls checkpoint_create tool (name: "Working State")
   ↓
-Plugin Command Handler
+Tool Handler (index.ts)
   ↓
-1. Get current message count (via session.messages())
+1. Get current message count (via sessionClient.messages())
 2. Get Git commit (via execSync)
 3. Store in SQLite:
    {
@@ -83,15 +86,15 @@ Plugin Command Handler
      createdAt: 1234567890
    }
   ↓
-Response: "✓ Checkpoint created: Working State (ID: 5)"
+Response: "Checkpoint created: Working State (ID: 5)"
 ```
 
 ### Restoring from Checkpoint
 
 ```
-User: /restore 5
+Agent calls checkpoint_restore tool (checkpoint: "5")
   ↓
-Plugin Command Handler
+Tool Handler (index.ts)
   ↓
 RestoreManager.restore(sessionId, checkpointId)
   ↓
@@ -99,19 +102,19 @@ RestoreManager.restore(sessionId, checkpointId)
    → messageCount = 42
   ↓
 2. Get current session messages
-   messages = session.messages(sessionId)
+   sessionClient.messages(sessionId)
   ↓
 3. Find target message
    targetMsg = messages[41]  // 42nd message (0-indexed)
   ↓
 4. Fork session
-   newSession = session.fork({
+   sessionClient.fork({
      sessionId,
      messageId: targetMsg.id,
      title: "Restored: Working State"
    })
   ↓
-Response: "✓ Restored to checkpoint. New session: ses_xyz"
+Response: "Session restored to checkpoint: Working State. New session: ses_xyz"
 ```
 
 ## Integration with OpenCode
@@ -124,8 +127,8 @@ Response: "✓ Restored to checkpoint. New session: ses_xyz"
 
 2. **Plugin System**
    - Event hooks
-   - Command registration
-   - Context (client, directory, etc.)
+   - Tool registration (via `tool()` helper with Zod schemas)
+   - Context (client, directory, ToolContext with sessionID)
 
 3. **Compression**
    - Use OpenCode's native compaction
@@ -219,14 +222,9 @@ Response: "✓ Restored to checkpoint. New session: ses_xyz"
 
 ### E2E Tests (`__tests__/integration.test.ts`)
 - Complete workflows
-- Command execution
+- Tool execution
 - Multi-checkpoint scenarios
 - Session cleanup
-
-### Test Coverage
-- **Lines:** 100%
-- **Branches:** 100%
-- **Functions:** 100%
 
 ## Security Considerations
 
@@ -262,15 +260,21 @@ db.createCheckpoint({
 });
 ```
 
-### Custom Commands
+### Custom Tools
 ```typescript
 // In plugin
-command: {
-  'checkpoint-tag': {
-    async execute({ sessionId, args }) {
+tool: {
+  checkpoint_tag: tool({
+    description: 'Add tags to a checkpoint',
+    args: {
+      id: tool.schema.string().describe('Checkpoint ID'),
+      tag: tool.schema.string().describe('Tag to add'),
+    },
+    async execute(args, context) {
       // Add tags to checkpoint
-    }
-  }
+      return 'Tag added';
+    },
+  }),
 }
 ```
 

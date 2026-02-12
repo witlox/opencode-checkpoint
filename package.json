@@ -1,6 +1,6 @@
 {
   "name": "opencode-checkpoint-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Checkpoint and restore system for OpenCode with time-travel debugging",
   "main": "dist/index.js",
   "type": "module",
